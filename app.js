@@ -6,7 +6,11 @@ var pressing = [], lastPress=null;
 var KEY_LEFT=37, KEY_UP=38,KEY_RIGHT=39,KEY_DOWN=40,KEY_ENTER=13;
 var pause=false,gameover=false;
 var cam = null;
+var spritesheet=new Image();
 var worldWidth=0,worldHeight=0;
+var elapsed=0;
+
+//MAPS
 var wall = [],
 lava = [],
 currentMap=0;
@@ -113,8 +117,10 @@ function setMap (map,blocksize){
                 enemy = new Rectangle2D(col*blocksize,row*blocksize,blocksize,blocksize,true);
                 if(map[row][col]===3){
                     enemy.vx= 5;
+                    enemy.dir=1;
                 }else if(map[row][col]===4){
                     enemy.vy=5;
+                    enemy.dir=2;
                 }
                 enemies.push(enemy);
             } 
@@ -143,6 +149,7 @@ Rectangle2D.prototype = {
     height:0,
     vx:0,
     vy:0,
+    dir:0,
     // rotation:0,
     // rotationTransition:0,
 
@@ -201,13 +208,20 @@ Rectangle2D.prototype = {
             ctx.strokeRect(this.left,this.top,this.width,this.height);   
         }
     },
-    drawImageArea: function (ctx,img,sx,sy,sw,sh){
-        if(img.width){
-            ctx.save();
-            ctx.translate(this.x,this.y)
-            ctx.rotate((this.rotation+this.rotationTransition)*Math.PI/180);
-            ctx.drawImage(img,sx,sy,sw,sh,-this.width/2,-this.height/2,this.width,this.height);
-            ctx.restore();
+    drawImageArea: function (ctx,cam,img,sx,sy,sw,sh){
+        if(ctx!==undefined){
+            if(cam!==undefined){
+            if(img.width){
+                ctx.drawImage(img,sx,sy,sw,sh, this.left - cam.x , this.top - cam.y,this.width,this.height);
+                }else{
+                ctx.strokeRect(this.left - cam.x,this.top - cam.y,this.width,this.height);
+                }
+            }else {if(img.width){
+                ctx.drawImage(img,sx,sy,sw,sh,this.left,this.top,this.width,this.height);
+                }else{
+                ctx.strokeRect(this.left,this.top,this.width,this.height);
+                }
+            }
         }
     }
 };
@@ -257,6 +271,9 @@ function init(){
     // wall.push(new Rectangle2D(100,150,10,10,true))
     // wall.push(new Rectangle2D(200,50,10,10,true))
     // wall.push(new Rectangle2D(200,150,10,10,true))
+
+    spritesheet.src='assets/maze-sprites.png'
+
     enableInputs();
     setMap(maps[0],10);
     run()
@@ -267,9 +284,9 @@ function repaint(){
     paint(ctx)
 }
 function run(){
-    setTimeout(run,25)
+    setTimeout(run,50)
 
-    act();
+    act(0.05);
 }
 function reset(){
     player.top=100;
@@ -282,18 +299,19 @@ function paint(ctx){
     ctx.fillStyle='#000';
     ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle='#fff';
-    player.fill(ctx,cam);
+    // player.fill(ctx,cam);
+    player.drawImageArea(ctx,cam,spritesheet,(~~(elapsed*10)%2)*10,player.dir*10,10,10);
     ctx.fillStyle='#888';
     for(var i = 0;i<wall.length;i++){
-        wall[i].fill(ctx,cam)
+        wall[i].drawImageArea(ctx,cam,spritesheet,20,0,10,10);
     }
     ctx.fillStyle='#f33'
     for (i=0;i<lava.length;i++){
-        lava[i].fill(ctx,cam);
+        lava[i].drawImageArea(ctx,cam,spritesheet,20,10 + (~~(elapsed*10)%3)*10,10,10);
     }
     ctx.fillStyle='#f00'
     for(i=0;i<enemies.length;i++){
-        enemies[i].fill(ctx,cam);
+        enemies[i].drawImageArea(ctx,cam,spritesheet,30 +(~~(elapsed*10)%2)*10,enemies[i].dir*10,10,10)
     }
     ctx.font='16px sans-serif';
     ctx.textAlign='center'
@@ -307,13 +325,14 @@ function paint(ctx){
     }
     ctx.textAlign='left'
 }
-function act (){
+function act (deltaTime){
     if(!pause){
         if(gameover){
             reset();
         }
         cam.focus(player.x,player.y)
     if(pressing[KEY_LEFT]){
+        player.dir=3
         player.x-=5;
         for(var i=0;i<wall.length;i++){
             if(wall[i].intersects(player)){
@@ -321,6 +340,7 @@ function act (){
                 }
             }
         }else if(pressing[KEY_RIGHT]){
+        player.dir=1
         player.x+=5;
         for( i=0;i<wall.length;i++){
             if(wall[i].intersects(player)){
@@ -328,6 +348,7 @@ function act (){
                 }
             }
         }else if(pressing[KEY_UP]){
+        player.dir=0;
         player.y-=5;
         for( i=0;i<wall.length;i++){
             if(wall[i].intersects(player)){
@@ -335,6 +356,7 @@ function act (){
                 }
             }
         }else if(pressing[KEY_DOWN]){
+        player.dir=2
         player.y+=5;
         for( i=0;i<wall.length;i++){
             if(wall[i].intersects(player)){
@@ -381,6 +403,10 @@ function act (){
                 enemies[i].x+=enemies[i].vx;
                 for(var j =0,jl = wall.length;j<jl;j++){
                     if(enemies[i].intersects(wall[j])){
+                        enemies[i].dir+=2;
+                        if(enemies[i].dir>3){
+                            enemies[i].dir-=4;
+                        }
                         enemies[i].vx*=-1;
                         enemies[i].x+=enemies[i].vx;
                         break
@@ -391,6 +417,10 @@ function act (){
                 enemies[i].y+=enemies[i].vy;
                 for( j =0,jl = wall.length;j<jl;j++){
                     if(enemies[i].intersects(wall[j])){
+                        enemies[i].dir+=2;
+                        if(enemies[i].dir>3){
+                            enemies[i].dir-=4;
+                        }
                         enemies[i].vy*=-1;
                         enemies[i].y+=enemies[i].vy;
                         break
@@ -399,6 +429,10 @@ function act (){
             }
          }
 
+         elapsed+=deltaTime
+         if(elapsed>3600){
+             elapsed-=3600;
+         }
     }
         if(lastPress===KEY_ENTER){
             pause=!pause;

@@ -382,7 +382,7 @@ function act (){
                 for(var j =0,jl = wall.length;j<jl;j++){
                     if(enemies[i].intersects(wall[j])){
                         enemies[i].vx*=-1;
-                        enemies.x+=enemies.vx;
+                        enemies[i].x+=enemies[i].vx;
                         break
                     }
                 }
@@ -392,7 +392,7 @@ function act (){
                 for( j =0,jl = wall.length;j<jl;j++){
                     if(enemies[i].intersects(wall[j])){
                         enemies[i].vy*=-1;
-                        enemies.y+=enemies.vy;
+                        enemies[i].y+=enemies[i].vy;
                         break
                     }
                 }

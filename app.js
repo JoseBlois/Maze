@@ -3,13 +3,13 @@
 var canvas=null,ctx=null;
 var player = null;
 var pressing = [], lastPress=null;
-var KEY_LEFT=37, KEY_UP=38,KEY_RIGHT=39,KEY_DOWN=40,KEY_ENTER=13;
+var KEY_LEFT=37, KEY_UP=38,KEY_RIGHT=39,KEY_DOWN=40,KEY_ENTER=13,KEY_SPACE=32;
 var pause=false,gameover=false;
 var cam = null;
 var spritesheet=new Image();
 var worldWidth=0,worldHeight=0;
 var elapsed=0;
-
+var color='#000';
 //MAPS
 var wall = [],
 lava = [],
@@ -150,8 +150,7 @@ Rectangle2D.prototype = {
     vx:0,
     vy:0,
     dir:0,
-    // rotation:0,
-    // rotationTransition:0,
+    timer:0,
 
     get x() {
         return this.left + this.width/2;
@@ -296,7 +295,7 @@ function reset(){
     gameover=false
 }
 function paint(ctx){
-    ctx.fillStyle='#000';
+    ctx.fillStyle=color;
     ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle='#fff';
     // player.fill(ctx,cam);
@@ -314,8 +313,9 @@ function paint(ctx){
         enemies[i].drawImageArea(ctx,cam,spritesheet,30 +(~~(elapsed*10)%2)*10,enemies[i].dir*10,10,10)
     }
     ctx.font='16px sans-serif';
-    ctx.textAlign='center'
     ctx.fillStyle='#0f0';
+    ctx.fillText('Timestop: '+player.timer,0,10);
+    ctx.textAlign='center'    
     if(pause){
         if(gameover){
         ctx.fillText('GAMEOVER - ENTER TO RESET',canvas.width/2,canvas.height/2)  
@@ -331,6 +331,10 @@ function act (deltaTime){
             reset();
         }
         cam.focus(player.x,player.y)
+    if(lastPress===KEY_SPACE&&player.timer<1){
+        player.timer=200;
+        lastPress=null;
+    }
     if(pressing[KEY_LEFT]){
         player.dir=3
         player.x-=5;
@@ -339,7 +343,8 @@ function act (deltaTime){
                 player.left=wall[i].right
                 }
             }
-        }else if(pressing[KEY_RIGHT]){
+        }
+        if(pressing[KEY_RIGHT]){
         player.dir=1
         player.x+=5;
         for( i=0;i<wall.length;i++){
@@ -347,7 +352,8 @@ function act (deltaTime){
                 player.right=wall[i].left;
                 }
             }
-        }else if(pressing[KEY_UP]){
+        }
+        if(pressing[KEY_UP]){
         player.dir=0;
         player.y-=5;
         for( i=0;i<wall.length;i++){
@@ -355,7 +361,8 @@ function act (deltaTime){
                 player.top=wall[i].bottom;
                 }
             }
-        }else if(pressing[KEY_DOWN]){
+        }
+        if(pressing[KEY_DOWN]){
         player.dir=2
         player.y+=5;
         for( i=0;i<wall.length;i++){
@@ -394,6 +401,7 @@ function act (deltaTime){
              player.y=worldHeight
          }
          //ENEMIES MOVEMENT
+         if(player.timer<180){
          for(i=0;i<enemies.length;i++ ){
              if(enemies[i].intersects(player)){
                 gameover=true;
@@ -428,10 +436,18 @@ function act (deltaTime){
                 }
             }
          }
-
+        }
+        if(player.timer>180){
+            color='#fff';
+        }else{
+            color='#000';
+        }
          elapsed+=deltaTime
          if(elapsed>3600){
              elapsed-=3600;
+         }
+         if(player.timer>0){
+             player.timer-=2
          }
     }
         if(lastPress===KEY_ENTER){
